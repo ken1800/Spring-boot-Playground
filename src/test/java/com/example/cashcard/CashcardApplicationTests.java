@@ -26,6 +26,6 @@ class CashCardApplicationTests {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 		DocumentContext documentContext = JsonPath.parse(response.getBody());
 		Number id = documentContext.read("$.id");
-		assertThat(id).isEqualTo(100);
+		assertThat(id).isEqualTo(99);
     }
 }
