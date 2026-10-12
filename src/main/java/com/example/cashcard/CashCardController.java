@@ -4,9 +4,14 @@ package com.example.cashcard;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 
 import org.slf4j.Logger;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -48,10 +53,15 @@ class CashCardController {
         return ResponseEntity.created(location).body(savedCard);
     }
 
-    @GetMapping()
-    public ResponseEntity<Iterable<CashCard>> findAllCashCards() {
-        log.debug("findAllCashCards() invoked");
-        Iterable<CashCard> cashCards = cardRepository.findAll();
-        return ResponseEntity.ok(cashCards);
+    @GetMapping
+    private ResponseEntity<List<CashCard>> findAll(Pageable pageable) {
+        Page<CashCard> page = cardRepository.findAll(
+                PageRequest.of(
+                        pageable.getPageNumber(),
+                        pageable.getPageSize(),
+                        pageable.getSortOr(Sort.by(Sort.Direction.ASC, "amount"))
+                )
+        );
+        return ResponseEntity.ok(page.getContent());
     }
 }
