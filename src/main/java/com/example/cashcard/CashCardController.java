@@ -4,6 +4,7 @@ package com.example.cashcard;
 import org.slf4j.LoggerFactory;
 
 import java.net.URI;
+import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,7 +21,6 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.util.UriComponentsBuilder;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @RestController
 @RequestMapping("/cashcards")
@@ -33,12 +33,12 @@ class CashCardController {
     }
 
     @GetMapping("/{id}")
-    private ResponseEntity<CashCard> findCardById(@PathVariable Long id) {
+    private ResponseEntity<CashCard> findCardById(@PathVariable Long id, Principal principal) {
         log.debug("findCardById() invoked: " + id);
-        Optional<CashCard> cashCard = cardRepository.findById(id);
-        if(cashCard.isPresent()) {
-            log.debug("Cash card found: " + cashCard.get());
-            return ResponseEntity.ok(cashCard.get());
+        Optional<CashCard> cashCardOptional = Optional.ofNullable(cardRepository.findByIdAndOwner(id, principal.getName()));
+        if(cashCardOptional.isPresent()) {
+            log.debug("Cash card found: " + cashCardOptional.get());
+            return ResponseEntity.ok(cashCardOptional.get());
         }
 
         log.debug("Cash card not found: " + id);
@@ -46,16 +46,17 @@ class CashCardController {
     }
 
     @PostMapping()
-    public ResponseEntity<CashCard> createCashCard(@RequestBody CashCard cashCard, UriComponentsBuilder ucb) {
+    public ResponseEntity<CashCard> createCashCard(@RequestBody CashCard cashCard, UriComponentsBuilder ucb, Principal principal) {
         log.debug("createCashCard() invoked: {}", cashCard);
-        CashCard savedCard = cardRepository.save(cashCard);
+        CashCard cashCardWithOwner = new CashCard(null, cashCard.amount(), principal.getName());
+        CashCard savedCard = cardRepository.save(cashCardWithOwner);
         URI location = ucb.path("/cashcards/{id}").buildAndExpand(savedCard.id()).toUri();
         return ResponseEntity.created(location).body(savedCard);
     }
 
     @GetMapping
-    private ResponseEntity<List<CashCard>> findAll(Pageable pageable) {
-        Page<CashCard> page = cardRepository.findAll(
+    private ResponseEntity<List<CashCard>> findAll(Pageable pageable, Principal principal) {
+        Page<CashCard> page = cardRepository.findByOwner(principal.getName(),
                 PageRequest.of(
                         pageable.getPageNumber(),
                         pageable.getPageSize(),
