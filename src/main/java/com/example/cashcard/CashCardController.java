@@ -21,6 +21,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.util.UriComponentsBuilder;
+import org.springframework.web.bind.annotation.PutMapping;
+
 
 @RestController
 @RequestMapping("/cashcards")
@@ -64,5 +66,18 @@ class CashCardController {
                 )
         );
         return ResponseEntity.ok(page.getContent());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<CashCard> updateCashCard(@PathVariable Long id, @RequestBody CashCard cashCard, Principal principal) {
+        log.debug("updateCashCard() invoked: {}", cashCard);
+        CashCard existingCard = cardRepository.findByIdAndOwner(id, principal.getName());
+        if(existingCard != null) {
+            CashCard updatedCard = new CashCard(existingCard.id(), cashCard.amount(), principal.getName());
+            cardRepository.save(updatedCard);
+            return ResponseEntity.noContent().build();
+        }
+        log.debug("Cash card not found: " + id);
+        return ResponseEntity.notFound().build();
     }
 }
